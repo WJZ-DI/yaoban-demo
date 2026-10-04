@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>药伴 · 康护版</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;padding:30px 20px;min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
+  color:#2F3B22;
+  display:flex;align-items:center;justify-content:center;
+  background: #FFFFFF;
+  overflow-x:hidden;
+}
+/* ============ 手机外框 ============ */
+.phone{
+  position:relative;z-index:2;flex:0 0 auto;
+  width:390px;height:844px;padding:11px;border-radius:50px;
+  background:linear-gradient(150deg,rgba(255,255,255,.88),rgba(255,255,255,.36));
+  box-shadow:0 40px 80px rgba(47,59,34,.15),0 0 0 1px rgba(0,0,0,.06),inset 0 2px 12px rgba(255,255,255,.9);
+  backdrop-filter:blur(24px) saturate(1.5);
+}
+.screen{
+  position:relative;width:100%;height:100%;border-radius:40px;overflow:hidden;isolation:isolate;
+  background:linear-gradient(170deg,#F1F9DC 0%,#DCEFA4 52%,#C5DE6A 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.65);
+}
+.screen::before,.screen::after{content:'';position:absolute;border-radius:50%;filter:blur(46px);pointer-events:none;z-index:0}
+.screen::before{width:260px;height:260px;background:rgba(255,255,255,.8);top:-80px;left:-70px}
+.screen::after{width:320px;height:320px;background:rgba(168,201,74,.42);bottom:-100px;right:-100px}
+#app{position:absolute;inset:0;z-index:1}
+#layer{position:absolute;inset:0;z-index:20;pointer-events:none}
+#layer>*{pointer-events:auto}
+
+/* ============ 截图展开模式 ============ */
+.phone.capturing{height:auto !important;border-radius:44px}
+.phone.capturing .screen{height:auto !important;overflow:visible !important;border-radius:36px}
+.phone.capturing #app{position:relative !important;inset:auto !important}
+.phone.capturing .page{position:relative !important;inset:auto !important}
+.phone.capturing .scroll{overflow:visible !important;height:auto !important;flex:none !important}
+.phone.capturing *{animation:none !important;transition:none !important}
+
+/* ============ 页面骨架 ============ */
+.page{position:absolute;inset:0;display:flex;flex-direction:column}
+.scroll{flex:1;overflow-y:auto;padding:14px 16px 20px;scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+.topbar{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 16px 6px;gap:8px}
+.tb-title{font-size:17px;font-weight:900;letter-spacing:.5px}
+.tb-acts{display:flex;gap:6px}
+.tabbar{
+  flex:0 0 auto;display:flex;gap:4px;margin:0 12px 14px;padding:9px 8px;border-radius:26px;
+  background:linear-gradient(150deg,rgba(255,255,255,.82),rgba(255,255,255,.52));
+  backdrop-filter:blur(20px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 10px 26px rgba(47,59,34,.13),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;border-radius:18px;
+  border:none;background:transparent;font-family:inherit;font-weight:800;font-size:10.5px;color:#6E7D5A;
+  cursor:pointer;transition:.18s;line-height:1.1;
+}
+.tab.active{background:linear-gradient(150deg,#DCF08F,#B8D656);color:#2F3B22;box-shadow:0 6px 14px rgba(168,201,74,.42)}
+.tab .ico{opacity:.85}
+.tab.active .ico{opacity:1}
+
+/* ============ 玻璃卡片 ============ */
+.glass{
+  background:linear-gradient(150deg,rgba(255,255,255,.76),rgba(255,255,255,.44));
+  backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.8);
+  box-shadow:0 10px 26px rgba(47,59,34,.10),inset 0 1px 0 rgba(255,255,255,.95);
+}
+.card{padding:16px;border-radius:22px;margin-bottom:12px}
+.card-title{font-size:16px;font-weight:900;letter-spacing:.2px}
+.card-sub{font-size:12.5px;color:#6E7D5A;margin-top:4px;line-height:1.5;font-weight:600}
+.sec-title{font-size:23px;font-weight:900;margin:2px 0 12px;letter-spacing:.5px}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pill{font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.75);color:#6E7D5A;white-space:nowrap;border:1px solid rgba(255,255,255,.9)}
+.pill.ok{background:linear-gradient(150deg,#DCF08F,#B8D656);color:#2F3B22}
+.pill.warn{background:linear-gradient(150deg,#FFE7A8,#F6C24A);color:#6B4A00}
+
+/* ============ 按钮 ============ */
+.btn{
+  border:1px solid rgba(255,255,255,.85);font-family:inherit;font-weight:800;cursor:pointer;
+  border-radius:999px;padding:13px 18px;font-size:15px;color:#2F3B22;
+  background:linear-gradient(150deg,rgba(255,255,255,.82),rgba(255,255,255,.52));
+  backdrop-filter:blur(12px);
+  box-shadow:0 6px 16px rgba(47,59,34,.10),inset 0 1px 0 rgba(255,255,255,.95);
+  transition:transform .12s ease,box-shadow .12s ease;
+}
+.btn:active{transform:scale(.96);box-shadow:0 3px 8px rgba(47,59,34,.12)}
+.btn.primary{background:linear-gradient(150deg,#E4F59C,#B8D656 62%,#A8C94A);box-shadow:0 10px 22px rgba(168,201,74,.45),inset 0 1px 0 rgba(255,255,255,.85)}
+.btn.dark{background:linear-gradient(150deg,#4A5836,#2F3B22);color:#F2F8E4;border-color:rgba(255,255,255,.3)}
+.btn.block{display:block;width:100%;margin-top:10px}
+.btn.small{padding:9px 14px;font-size:12.5px}
+.btn.huge{font-size:25px;padding:22px 20px;border-radius:28px;font-weight:900}
+.btn.text{background:none;border:none;box-shadow:none;color:#4A5836;text-decoration:underline;font-size:13px}
+
+.chip{
+  padding:7px 13px;border-radius:999px;font-size:12px;font-weight:800;font-family:inherit;
+  border:1px solid rgba(255,255,255,.85);background:rgba(255,255,255,.62);color:#4A5836;
+  cursor:pointer;transition:.15s;backdrop-filter:blur(10px);
+}
+.chip.active{background:linear-gradient(150deg,#DCF08F,#B8D656);color:#2F3B22;box-shadow:0 4px 12px rgba(168,201,74,.4)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+
+/* ============ 登录页 ============ */
+.login-wrap{justify-content:center;padding:0 24px}
+.brand{text-align:center;margin-bottom:26px}
+.brand-mark{
+  width:76px;height:76px;margin:0 auto 14px;border-radius:26px;display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:900;letter-spacing:1px;
+  background:linear-gradient(150deg,#EAF9AE,#B8D656 60%,#A8C94A);
+  color:#2F3B22;box-shadow:0 16px 30px rgba(168,201,74,.45),inset 0 2px 0 rgba(255,255,255,.8);
+}
+.brand-title{font-size:26px;font-weight:900;letter-spacing:1px}
+.brand-sub{font-size:12.5px;color:#6E7D5A;font-weight:700;margin-top:6px;letter-spacing:.5px}
+.label{font-size:12px;font-weight:800;color:#6E7D5A;margin:12px 0 6px}
+.input{
+  width:100%;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.72);
+  border-radius:16px;padding:13px 14px;font-size:15px;font-family:inherit;font-weight:700;color:#2F3B22;outline:none;
+}
+.input::placeholder{color:#9AA88A;font-weight:600}
+.input-row{display:flex;gap:8px;align-items:center}
+.tiny{text-align:center;font-size:11px;color:#6E7D5A;margin-top:16px;font-weight:600;line-height:1.6}
+
+/* ============ 首页 ============ */
+.home-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+.greet{font-size:25px;font-weight:900;letter-spacing:.5px}
+.date-line{font-size:12.5px;color:#6E7D5A;font-weight:700;margin-top:6px}
+.avatar{
+  width:54px;height:54px;border-radius:20px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  background:linear-gradient(150deg,rgba(255,255,255,.9),rgba(255,255,255,.5));
+  border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 18px rgba(47,59,34,.12);color:#4A5836;
+}
+.days-badge{
+  display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:6px 13px;border-radius:999px;
+  background:linear-gradient(150deg,#E4F59C,#B8D656);font-size:12.5px;font-weight:900;
+  box-shadow:0 6px 14px rgba(168,201,74,.4);
+}
+.overview{display:flex;gap:10px;margin-top:14px}
+.ov{flex:1;text-align:center;padding:12px 6px;border-radius:18px;background:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.85)}
+.ov-ring{
+  width:44px;height:44px;margin:0 auto 8px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:900;color:#6E7D5A;background:rgba(255,255,255,.9);
+  border:2px dashed rgba(154,168,138,.6);
+}
+.ov-ring.done{
+  color:#2F3B22;border:2px solid transparent;
+  background:linear-gradient(150deg,#E4F59C,#B8D656);box-shadow:0 6px 14px rgba(168,201,74,.4);
+}
+.ov-label{font-size:12px;font-weight:800;color:#4A5836}
+.mode-card{display:flex;align-items:center;gap:14px;padding:16px;border-radius:22px;margin-bottom:11px;cursor:pointer;transition:.15s}
+.mode-card:active{transform:scale(.98)}
+.mode-ico{
+  width:50px;height:50px;flex:0 0 auto;border-radius:17px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,rgba(232,245,184,.95),rgba(197,222,106,.85));color:#2F3B22;
+  border:1px solid rgba(255,255,255,.9);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.mode-name{font-size:16.5px;font-weight:900}
+.mode-desc{font-size:12px;color:#6E7D5A;font-weight:700;margin-top:4px;line-height:1.5}
+.mode-arrow{margin-left:auto;color:#9AA88A;font-weight:900;font-size:18px}
+.quick{display:flex;gap:10px;margin-top:4px}
+
+/* ============ 通用条目 ============ */
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid rgba(47,59,34,.08)}
+.setrow:last-child{border-bottom:none;padding-bottom:4px}
+.st-name{font-size:14.5px;font-weight:800}
+.st-sub{font-size:11.5px;color:#6E7D5A;font-weight:600;margin-top:3px;line-height:1.45}
+.switch{
+  width:50px;height:30px;border-radius:999px;flex:0 0 auto;cursor:pointer;position:relative;transition:.22s;
+  background:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.95);
+  box-shadow:inset 0 2px 6px rgba(47,59,34,.1);
+}
+.switch::after{
+  content:'';position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(47,59,34,.22);transition:.22s;
+}
+.switch.on{background:linear-gradient(150deg,#DCF08F,#A8C94A)}
+.switch.on::after{left:25px}
+
+.pharm{display:flex;gap:10px;padding:13px 0;border-bottom:1px solid rgba(47,59,34,.08);align-items:center}
+.pharm:last-child{border-bottom:none;padding-bottom:2px}
+.pharm-name{font-size:14.5px;font-weight:900}
+.pharm-meta{font-size:11.5px;color:#6E7D5A;font-weight:700;margin-top:4px}
+.pharm-price{font-size:15px;font-weight:900;color:#2F3B22;margin-top:5px}
+.pharm-price span{font-size:11px;color:#9AA88A;font-weight:700;margin-left:4px}
+.pharm-acts{margin-left:auto;display:flex;flex-direction:column;gap:6px}
+.mini{
+  border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.7);border-radius:999px;
+  font-family:inherit;font-size:11.5px;font-weight:800;color:#4A5836;padding:6px 12px;cursor:pointer;
+}
+.mini:active{transform:scale(.94)}
+
+/* ============ 饮食结果 ============ */
+.result{margin-top:14px;padding-top:14px;border-top:1px dashed rgba(47,59,34,.16)}
+.score{
+  width:88px;height:88px;border-radius:50%;margin:0 auto 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,#EAF9AE,#B8D656 65%,#A8C94A);color:#2F3B22;
+  box-shadow:0 12px 24px rgba(168,201,74,.42),inset 0 2px 0 rgba(255,255,255,.8);
+}
+.score-num{font-size:32px;font-weight:900;line-height:1}
+.score-txt{font-size:11px;font-weight:800;margin-top:2px;opacity:.75}
+.result.big .score{width:118px;height:118px}
+.result.big .score-num{font-size:44px}
+.rt{font-size:12px;font-weight:900;color:#6E7D5A;margin:12px 0 6px}
+.result.big .rt{font-size:16px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.8);color:#4A5836;border:1px solid rgba(255,255,255,.95)}
+.result.big .tag{font-size:15px;padding:8px 15px}
+.ul{margin:0;padding-left:18px}
+.ul li{font-size:13px;font-weight:700;line-height:1.7;color:#4A5836}
+.ul.good li::marker{color:#8CB63A}
+.ul.warn li::marker{color:#E09B2D}
+.result.big .ul li{font-size:17px;line-height:1.85}
+
+/* ============ 运动 ============ */
+.plan{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(47,59,34,.08)}
+.plan:last-child{border-bottom:none}
+.plan-ico{
+  width:42px;height:42px;border-radius:15px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  background:linear-gradient(150deg,rgba(232,245,184,.95),rgba(197,222,106,.8));color:#2F3B22;
+}
+.plan-name{font-size:14.5px;font-weight:900}
+.plan-desc{font-size:11.5px;color:#6E7D5A;font-weight:700;margin-top:4px}
+.plan-act{margin-left:auto}
+
+/* ============ 视频 / 通话 ============ */
+.video-stage{
+  flex:1;margin:0 16px 16px;border-radius:26px;position:relative;overflow:hidden;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(160deg,#3F4A2E,#2F3B22);
+  box-shadow:0 16px 36px rgba(47,59,34,.3);
+}
+.video-stage.light{background:linear-gradient(160deg,#EAF9AE,#B8D656 70%,#A8C94A)}
+.vs-avatar{
+  width:110px;height:110px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.4);color:#F2F8E4;
+}
+.video-stage.light .vs-avatar{background:rgba(255,255,255,.55);border-color:rgba(255,255,255,.9);color:#2F3B22}
+.vs-name{font-size:19px;font-weight:900;color:#F2F8E4;letter-spacing:.5px}
+.video-stage.light .vs-name{color:#2F3B22}
+.vs-tip{font-size:12.5px;font-weight:700;color:rgba(242,248,228,.7)}
+.video-stage.light .vs-tip{color:#4A5836}
+.progress{width:78%;height:9px;border-radius:999px;background:rgba(255,255,255,.28);overflow:hidden}
+.video-stage.light .progress{background:rgba(255,255,255,.7)}
+.progress i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#EAF9AE,#B8D656);transition:width .3s}
+
+/* ============ 长辈模式 ============ */
+.elder .sec-title{font-size:27px}
+.elder .card{padding:20px;border-radius:26px;margin-bottom:14px}
+.elder .card-title{font-size:20px}
+.elder .card-sub{font-size:15px}
+.elder .btn{font-size:19px;padding:17px 20px}
+.elder .chip{font-size:16px;padding:10px 16px}
+.elder .tab{font-size:12px;padding:9px 2px}
+.elder-head{font-size:26px;font-weight:900;letter-spacing:.5px;padding:4px 2px 14px}
+.elder-time{font-size:15px;font-weight:900;color:#6E7D5A;letter-spacing:1px}
+.elder-dose{font-size:42px;font-weight:900;line-height:1.1;margin:6px 0 2px;letter-spacing:1px}
+.elder-med{font-size:23px;font-weight:900;margin-top:6px}
+.elder-note{font-size:16px;font-weight:700;color:#6E7D5A;margin-top:8px}
+.meal{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(47,59,34,.08)}
+.meal:last-child{border-bottom:none}
+.meal-name{font-size:19px;font-weight:900;min-width:64px}
+.meal-body{font-size:16px;font-weight:700;color:#4A5836;line-height:1.5}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;gap:16px;padding:10px 0 6px}
+.mic{
+  width:132px;height:132px;border-radius:50%;border:none;cursor:pointer;color:#2F3B22;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(150deg,#EAF9AE,#B8D656 60%,#A8C94A);
+  box-shadow:0 18px 36px rgba(168,201,74,.5),inset 0 3px 0 rgba(255,255,255,.85);
+  transition:transform .14s;
+}
+.mic:active{transform:scale(.94)}
+.mic-hint{font-size:17px;font-weight:900;color:#4A5836;text-align:center;line-height:1.5}
+.voice-chip{
+  border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.72);border-radius:999px;
+  padding:12px 18px;font-family:inherit;font-size:17px;font-weight:800;color:#4A5836;cursor:pointer;
+}
+.voice-chip:active{transform:scale(.96)}
+.service{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(47,59,34,.08)}
+.service:last-child{border-bottom:none}
+.service-name{font-size:17px;font-weight:900}
+.service-meta{font-size:13px;color:#6E7D5A;font-weight:700;margin-top:4px}
+.einput{
+  width:100%;border:1px solid rgba(255,255,255,.9);background:rgba(255,255,255,.75);
+  border-radius:16px;padding:14px;font-size:17px;font-weight:800;font-family:inherit;color:#2F3B22;outline:none;
+}
+.field{margin-bottom:14px}
+.field-label{font-size:16px;font-weight:900;color:#4A5836;margin-bottom:7px}
+
+/* ============ 好友 ============ */
+.friend{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(47,59,34,.08)}
+.friend:last-child{border-bottom:none}
+.dot{width:9px;height:9px;border-radius:50%;background:#C0CBB0;flex:0 0 auto}
+.dot.on{background:#8CB63A;box-shadow:0 0 0 4px rgba(140,182,58,.18)}
+.friend-name{font-size:15px;font-weight:900}
+.friend-meta{font-size:11.5px;color:#6E7D5A;font-weight:700;margin-top:4px}
+
+/* ============ 弹层 / Toast ============ */
+.sheet-mask{position:absolute;inset:0;background:rgba(47,59,34,.32);backdrop-filter:blur(3px);display:flex;align-items:flex-end;animation:fade .2s}
+.sheet{
+  width:100%;border-radius:30px 30px 0 0;padding:20px 20px 26px;max-height:80%;overflow-y:auto;
+  background:linear-gradient(160deg,rgba(255,255,255,.97),rgba(244,251,224,.95));
+  box-shadow:0 -12px 40px rgba(47,59,34,.25);animation:up .26s cubic-bezier(.2,.9,.3,1);
+}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet-title{font-size:19px;font-weight:900;margin-bottom:4px}
+.sheet-sub{font-size:12.5px;color:#6E7D5A;font-weight:700;margin-bottom:14px;line-height:1.5}
+.toast{
+  position:absolute;left:50%;bottom:96px;transform:translateX(-50%);
+  background:rgba(47,59,34,.9);color:#F2F8E4;font-size:13px;font-weight:800;
+  padding:11px 20px;border-radius:999px;z-index:60;white-space:nowrap;max-width:88%;
+  box-shadow:0 10px 24px rgba(47,59,34,.35);animation:fade .2s;
+}
+.note{
+  font-size:12px;font-weight:700;color:#6E7D5A;line-height:1.65;padding:11px 14px;border-radius:16px;
+  background:rgba(255,255,255,.55);border:1px dashed rgba(154,168,138,.55);margin-top:12px;
+}
+.elder .note{font-size:14.5px}
+
+/* ============ 右侧工具 ============ */
+.tools{position:fixed;right:22px;bottom:24px;z-index:9;display:flex;flex-direction:column;gap:8px}
+.tools .btn{font-size:12px;padding:10px 14px;box-shadow:0 4px 12px rgba(0,0,0,.12);border:1px solid rgba(0,0,0,.08);background:#fff}
+
+/* ============ 导出进度 ============ */
+.export-mask{
+  position:fixed;inset:0;background:rgba(255,255,255,.94);z-index:999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  font-size:15px;font-weight:800;color:#2F3B22;
+}
+.export-mask .bar{width:240px;height:10px;border-radius:999px;background:rgba(47,59,34,.12);overflow:hidden}
+.export-mask .bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#E4F59C,#A8C94A);width:0;transition:width .25s}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="screen">
+    <div id="app"></div>
+    <div id="layer"></div>
+  </div>
+</div>
+
+<div class="tools">
+  <button class="btn glass" onclick="exportAllJPG()">导出全部页面 JPG</button>
+  <button class="btn glass" onclick="exportCurrentJPG()">导出当前页 JPG</button>
+</div>
+
+<script>
+/* ================= 图标 ================= */
+const ICONS = {
+  check:'<path d="M4 12.5l5 5 11-11"/>',
+  bowl:'<path d="M3.5 11h17a8.5 8.5 0 0 1-17 0z"/><path d="M9 7.5c0-1.5 1-2 1-3.5"/><path d="M13 7.5c0-1.5 1-2 1-3.5"/>',
+  run:'<circle cx="14.5" cy="4.8" r="2"/><path d="M13.5 8.5l-3 4 3.2 2 .8 5"/><path d="M13.5 12.5l-4.2 1-1.8 4"/><path d="M10.5 12.5L6.2 9.2"/>',
+  video:'<rect x="2.8" y="7" width="12.4" height="10" rx="3.2"/><path d="M15.2 11l6-3.2v8.4l-6-3.2z"/>',
+  file:'<path d="M6 3.2h8l4 4v13.6H6z"/><path d="M14 3.2v4h4"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+  pill:'<rect x="2.8" y="8" width="18.4" height="8" rx="4"/><path d="M12 8v8"/>',
+  phone:'<path d="M5 3.6h4l2 5-3 1.9a12.5 12.5 0 0 0 5.5 5.5l1.9-3 5 2v4a1.4 1.4 0 0 1-1.5 1.4A16.5 16.5 0 0 1 3.6 5.1 1.4 1.4 0 0 1 5 3.6z"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4.5 20c0-4 3.6-6 7.5-6s7.5 2 7.5 6"/>',
+  camera:'<path d="M3 8.5h3.5L8 6h8l1.5 2.5H21v10H3z"/><circle cx="12" cy="13" r="3.4"/>',
+  heart:'<path d="M12 20s-7-4.4-7-9.4A4.1 4.1 0 0 1 12 7.8a4.1 4.1 0 0 1 7 2.8c0 5-7 9.4-7 9.4z"/>',
+  mic:'<rect x="9" y="3" width="6" height="10" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3"/>',
+  bell:'<path d="M6.5 17V11a5.5 5.5 0 0 1 11 0v6"/><path d="M4.5 17h15"/><path d="M10 20h4"/>',
+  play:'<path d="M8 5.5l10 6.5-10 6.5z"/>',
+  shield:'<path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  book:'<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 5.5v15"/>'
+};
+function icon(n, size, cls){
+  size = size || 20;
+  return '<svg class="ico ' + (cls||'') + '" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[n]||'') + '</svg>';
+}
+
+/* ================= 数据 ================= */
+const PHARMACIES = [
+  {name:'幸福里社区药房',   dist:0.3, price:28.5, stock:'有货', insure:true,  addr:'幸福里 3 号楼下'},
+  {name:'康乐卫生服务中心', dist:0.6, price:26.0, stock:'有货', insure:true,  addr:'康乐路 18 号'},
+  {name:'阳光连锁药房',     dist:1.1, price:31.8, stock:'少量', insure:false, addr:'阳光大街 66 号'},
+  {name:'长青社区便民药房', dist:1.4, price:29.9, stock:'有货', insure:true,  addr:'长青小区东门'},
+  {name:'安和大药房',       dist:2.2, price:24.5, stock:'缺货', insure:false, addr:'安和路 9 号'}
+];
+const SERVICES = [
+  {name:'幸福里社区药房',   type:'药伴服务点 · 药房',   dist:'0.3km', addr:'幸福里 3 号楼下'},
+  {name:'康乐卫生服务中心', type:'药伴服务点 · 卫生中心', dist:'0.6km', addr:'康乐路 18 号'},
+  {name:'长青社区服务站',   type:'药伴服务点 · 社区站',   dist:'1.4km', addr:'长青小区东门内'},
+  {name:'夕阳红养老中心',   type:'药伴服务点 · 养老中心', dist:'2.0km', addr:'安和路 21 号'}
+];
+const SPORT_PLAN = [
+  {name:'坐姿抬腿', desc:'每侧 12 次 × 2 组 · 低强度', ic:'run'},
+  {name:'靠墙静蹲', desc:'30 秒 × 3 组 · 低强度',     ic:'run'},
+  {name:'肩颈拉伸', desc:'每个方向 20 秒 · 关节友好', ic:'heart'},
+  {name:'快走',     desc:'20 分钟 · 有氧',            ic:'run'}
+];
+const FRIENDS = [
+  {name:'李奶奶', online:true,  doing:'正在做坐姿抬腿'},
+  {name:'王阿姨', online:true,  doing:'正在快走'},
+  {name:'刘爷爷', online:false, doing:'20 分钟前在线'},
+  {name:'陈奶奶', online:false, doing:'昨天运动过'}
+];
+const DIET_SCAN = {
+  score:82,
+  dishes:['米饭','清蒸鲈鱼','凉拌黄瓜','豆腐汤'],
+  good:['蔬菜占比合适','清蒸做法，用油少'],
+  warn:['米饭略多，主食建议控制在半碗','豆腐汤嘌呤偏高，建议少量喝'],
+  tips:'这一餐整体不错。主食减到半碗，豆腐汤少喝，再加一份绿叶菜，就更合适了。'
+};
+const KB = [
+  {t:'外卖怎么点',       d:'看油看盐，先点一份青菜', type:'短视频'},
+  {t:'减油减盐技巧',     d:'3 分钟学会用限盐勺',     type:'短视频'},
+  {t:'痛风饮食清单',     d:'低嘌呤食物一览表',       type:'图文'},
+  {t:'应酬怎么吃',       d:'先喝汤再吃菜，酒要少',   type:'图文'}
+];
+const CHRONIC_TAGS = ['高血压','2 型糖尿病','痛风','高血脂','冠心病','慢性胃炎','骨质疏松'];
+
+/* ================= 状态 ================= */
+const state = {
+  screen:'login',
+  mode:'standard',
+  stdTab:'today',
+  elderTab:'med',
+  proTab:'users',
+  careDays:128,
+  user:{name:'小陈', phone:'138 0000 1234'},
+  check:{med:false, diet:false, sport:false},
+  pharm:{sort:'dist', insureOnly:false},
+  dietScan:false,
+  elderDietScan:false,
+  booked:null,
+  consultType:'用药咨询',
+  slot:null,
+  switches:{med:true, diet:true, sport:true, visible:false, family:true, record:false},
+  member:{name:'张奶奶', age:'70', gender:'女', main:'2 型糖尿病', other:'高血压', meds:'氨氯地平片、二甲双胍'},
+  addMed:{name:'', dose:'1 片', times:['08:00'], note:''},
+  video:{progress:0, playing:false, timer:null},
+  together:{stage:'list', friend:null, sec:0, timer:null},
+  call:{stage:'idle', who:''}
+};
+
+/* ================= 工具 ================= */
+const app = document.getElementById('app');
+const layer = document.getElementById('layer');
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function toast(msg){
+  const old = layer.querySelector('.toast'); if(old) old.remove();
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg;
+  layer.appendChild(el);
+  setTimeout(()=> el.remove(), 1800);
+}
+function speak(text){
+  toast('正在朗读');
+  try{
+    if(!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 0.92; u.pitch = 1;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function closeSheet(){ layer.innerHTML=''; }
+function openSheet(html){
+  layer.innerHTML = '<div class="sheet-mask" data-close="1"><div class="sheet">' + html + '</div></div>';
+}
+
+/* ================= 渲染入口 ================= */
+function render(){
+  const old = app.querySelector('.scroll');
+  const st = old ? old.scrollTop : 0;
+  let html = '';
+  switch(state.screen){
+    case 'login':    html = loginHTML();    break;
+    case 'home':     html = homeHTML();     break;
+    case 'standard': html = standardHTML(); break;
+    case 'elder':    html = elderHTML();    break;
+    case 'pro':      html = proHTML();      break;
+    case 'together': html = togetherHTML(); break;
+    case 'video':    html = videoHTML();    break;
+  }
+  app.innerHTML = html;
+  const nw = app.querySelector('.scroll');
+  if(nw) nw.scrollTop = st;
+}
+
+/* ================= 登录页 ================= */
+function loginHTML(){
+  return '<div class="page login-wrap">'
+    + '<div class="scroll" style="display:flex;flex-direction:column;justify-content:center">'
+    +   '<div class="brand">'
+    +     '<div class="brand-mark">药伴</div>'
+    +     '<div class="brand-title">药伴 · 康护版</div>'
+    +     '<div class="brand-sub">康护版 · 居家康养陪伴</div>'
+    +   '</div>'
+    +   '<div class="glass card" style="padding:20px">'
+    +     '<div class="label" style="margin-top:0">手机号</div>'
+    +     '<input class="input" id="phoneInput" value="138 0000 1234" placeholder="请输入手机号">'
+    +     '<div class="label">验证码</div>'
+    +     '<div class="input-row">'
+    +       '<input class="input" id="codeInput" placeholder="请输入验证码">'
+    +       '<button class="btn small" id="codeBtn" data-action="send-code" style="white-space:nowrap">获取验证码</button>'
+    +     '</div>'
+    +     '<button class="btn primary block" data-action="login">登录 / 注册</button>'
+    +   '</div>'
+    +   '<button class="btn glass block" data-action="wechat-login">微信一键登录</button>'
+    +   '<button class="btn text block" data-action="guest">先逛逛（游客模式）</button>'
+    +   '<div class="tiny">登录即表示同意《用户协议》与《隐私政策》<br>康养建议仅供参考，不能替代医生诊疗</div>'
+    + '</div></div>';
+}
+
+/* ================= 首页 ================= */
+function greetText(){
+  const h = new Date().getHours();
+  if(h < 6) return '夜深了';
+  if(h < 11) return '早上好';
+  if(h < 13) return '中午好';
+  if(h < 18) return '下午好';
+  return '晚上好';
+}
+function dateText(){
+  const d = new Date();
+  const w = '日一二三四五六'[d.getDay()];
+  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日  星期' + w;
+}
+function homeHTML(){
+  const c = state.check;
+  return '<div class="page"><div class="scroll">'
+    + '<div class="home-head">'
+    +   '<div>'
+    +     '<div class="greet">' + greetText() + '，' + esc(state.user.name) + '</div>'
+    +     '<div class="date-line">' + dateText() + '</div>'
+    +     '<div class="days-badge">' + icon('heart',15) + '康养第 ' + state.careDays + ' 天</div>'
+    +   '</div>'
+    +   '<div class="avatar">' + icon('user',26) + '</div>'
+    + '</div>'
+
+    + '<div class="glass card">'
+    +   '<div class="row-between"><div class="card-title">今日康养概览</div><span class="pill ' + (c.med&&c.diet&&c.sport?'ok':'') + '">' + ((c.med?1:0)+(c.diet?1:0)+(c.sport?1:0)) + ' / 3 已完成</span></div>'
+    +   '<div class="overview">'
+    +     '<div class="ov"><div class="ov-ring ' + (c.med?'done':'') + '">药</div><div class="ov-label">吃药</div></div>'
+    +     '<div class="ov"><div class="ov-ring ' + (c.diet?'done':'') + '">食</div><div class="ov-label">饮食</div></div>'
+    +     '<div class="ov"><div class="ov-ring ' + (c.sport?'done':'') + '">动</div><div class="ov-label">运动</div></div>'
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="sec-title" style="font-size:19px;margin-top:6px">选择使用方式</div>'
+
+    + '<div class="glass mode-card" data-action="goto" data-v="standard">'
+    +   '<div class="mode-ico">' + icon('bowl',24) + '</div>'
+    +   '<div><div class="mode-name">标准模式</div><div class="mode-desc">青年 / 中青年 · 饮食拍照、药房比价</div></div>'
+    +   '<div class="mode-arrow">›</div>'
+    + '</div>'
+
+    + '<div class="glass mode-card" data-action="goto" data-v="elder">'
+    +   '<div class="mode-ico">' + icon('bell',24) + '</div>'
+    +   '<div><div class="mode-name">极简长辈模式</div><div class="mode-desc">大字大按钮 · 语音添加提醒、语音连线</div></div>'
+    +   '<div class="mode-arrow">›</div>'
+    + '</div>'
+
+    + '<div class="glass mode-card" data-action="goto" data-v="pro">'
+    +   '<div class="mode-ico">' + icon('shield',24) + '</div>'
+    +   '<div><div class="mode-name">专业管理端</div><div class="mode-desc">药师 / 康养师工作台 · 隐私合规</div></div>'
+    +   '<div class="mode-arrow">›</div>'
+    + '</div>'
+
+    + '<div class="sec-title" style="font-size:19px;margin-top:14px">快捷操作</div>'
+    + '<div class="quick">'
+    +   '<button class="btn glass" style="flex:1" data-action="quick" data-v="药师">' + '找药师</button>'
+    +   '<button class="btn glass" style="flex:1" data-action="quick" data-v="提示">' + '听今日提示</button>'
+    + '</div>'
+
+    + '<button class="btn glass block" data-action="logout" style="margin-top:20px">退出登录 / 去登录</button>'
+    + '<div class="tiny" style="margin-top:14px">药伴 · 康护版　康护版 · 居家康养陪伴</div>'
+    + '</div></div>';
+}
+
+/* ================= 标准模式 ================= */
+function standardHTML(){
+  const tabs = [
+    ['today','今日康养','check'],
+    ['diet','饮食调整','bowl'],
+    ['sport','居家运动','run'],
+    ['video','预约视频','video'],
+    ['profile','我的档案','file']
+  ];
+  return '<div class="page">'
+    + '<div class="topbar">'
+    +   '<div class="tb-title">标准模式</div>'
+    +   '<div class="tb-acts">'
+    +     '<button class="chip" data-action="cycle-mode">切换模式</button>'
+    +     '<button class="chip" data-action="go-home">首页</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="scroll">' + stdContent() + '</div>'
+    + '<div class="tabbar">'
+    +   tabs.map(t => '<button class="tab ' + (state.stdTab===t[0]?'active':'') + '" data-action="std-tab" data-v="' + t[0] + '">' + icon(t[2],20) + '<span>' + t[1] + '</span></button>').join('')
+    + '</div></div>';
+}
+function stdContent(){
+  switch(state.stdTab){
+    case 'today':   return stdToday();
+    case 'diet':    return stdDiet();
+    case 'sport':   return stdSport();
+    case 'video':   return stdVideo();
+    case 'profile': return stdProfile();
+  }
+}
+
+function stdToday(){
+  const c = state.check;
+  return '<div class="sec-title">今日康养</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="row-between"><div class="card-title">吃药</div><span class="pill ' + (c.med?'ok':'') + '">' + (c.med?'已打卡':'待打卡') + '</span></div>'
+  +   '<div style="margin-top:10px"><div style="font-size:17px;font-weight:900">氨氯地平片</div>'
+  +   '<div class="card-sub">1 片 · 饭后服用 · 剩余 12 天</div></div>'
+  +   '<button class="btn ' + (c.med?'glass':'primary') + ' block" data-action="check" data-key="med">' + (c.med?'已完成打卡':'完成吃药打卡') + '</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="row-between"><div class="card-title">饮食打卡</div><span class="pill ' + (c.diet?'ok':'') + '">' + (c.diet?'已打卡':'待打卡') + '</span></div>'
+  +   '<div class="card-sub">拍下这一餐，看看吃得合不合适</div>'
+  +   '<button class="btn ' + (c.diet?'glass':'primary') + ' block" data-action="check" data-key="diet">' + (c.diet?'已完成打卡':'完成饮食打卡') + '</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="row-between"><div class="card-title">运动打卡</div><span class="pill ' + (c.sport?'ok':'') + '">' + (c.sport?'已打卡':'待打卡') + '</span></div>'
+  +   '<div class="card-sub">今日计划：坐姿抬腿 · 靠墙静蹲</div>'
+  +   '<button class="btn ' + (c.sport?'glass':'primary') + ' block" data-action="check" data-key="sport">' + (c.sport?'已完成打卡':'完成运动打卡') + '</button>'
+  + '</div>'
+
+  + '<button class="btn dark block" data-action="check-all">一键完成剩余打卡</button>'
+
+  + '<div class="glass card" style="margin-top:12px">'
+  +   '<div class="row-between"><div class="card-title">附近药房</div><span class="pill">氨氯地平片</span></div>'
+  +   '<div class="chips">'
+  +     '<button class="chip ' + (state.pharm.sort==='dist'?'active':'') + '" data-action="sort" data-v="dist">按距离</button>'
+  +     '<button class="chip ' + (state.pharm.sort==='price'?'active':'') + '" data-action="sort" data-v="price">按价格</button>'
+  +     '<button class="chip ' + (state.pharm.insureOnly?'active':'') + '" data-action="insure">只看医保</button>'
+  +   '</div>'
+  +   pharmacyList()
+  + '</div>';
+}
+
+function pharmacyList(){
+  let list = PHARMACIES.slice();
+  if(state.pharm.insureOnly) list = list.filter(p => p.insure);
+  list.sort((a,b) => state.pharm.sort === 'price' ? a.price - b.price : a.dist - b.dist);
+  if(!list.length) return '<div class="card-sub" style="padding:12px 0">没有符合条件的药房</div>';
+  return list.map(p =>
+    '<div class="pharm">'
+    + '<div>'
+    +   '<div class="pharm-name">' + esc(p.name) + '</div>'
+    +   '<div class="pharm-meta">' + p.dist + 'km · ' + p.stock + ' · ' + (p.insure?'医保可刷':'自费') + '</div>'
+    +   '<div class="pharm-price">￥' + p.price.toFixed(2) + '<span>氨氯地平片 / 盒</span></div>'
+    + '</div>'
+    + '<div class="pharm-acts">'
+    +   '<button class="mini" data-action="nav" data-name="' + esc(p.name) + '">导航</button>'
+    +   '<button class="mini" data-action="call" data-name="' + esc(p.name) + '">电话</button>'
+    + '</div>'
+    + '</div>'
+  ).join('');
+}
+
+function stdDiet(){
+  return '<div class="sec-title">饮食调整</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">拍照检查饮食</div>'
+  +   '<div class="card-sub">对准这一餐拍一张，立刻给出评分与建议</div>'
+  +   '<button class="btn primary block" data-action="scan-diet">' + '拍照检查' + '</button>'
+  +   (state.dietScan ? dietResultHTML(false) : '')
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">个性化饮食方案</div>'
+  +   '<div class="card-sub">痛风 · 低嘌呤方案</div>'
+  +   '<ul class="ul good" style="margin-top:10px">'
+  +     '<li>多蔬菜、多喝水，每日饮水 1500ml 以上</li>'
+  +     '<li>控制主食，米饭半碗到一碗</li>'
+  +     '<li>少油少盐，蒸煮为主</li>'
+  +     '<li>限制酒精与浓汤，动物内脏不吃</li>'
+  +   '</ul>'
+  +   '<button class="btn glass block" data-action="speak" data-text="痛风低嘌呤方案：多蔬菜多喝水，控制主食，少油少盐，限制酒精和浓汤，动物内脏不要吃。">听方案</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">康养知识库</div>'
+  +   '<div class="card-sub">短视频 + 图文，随时看</div>'
+  +   KB.map(k =>
+      '<div class="plan">'
+      + '<div class="plan-ico">' + icon(k.type==='短视频'?'play':'book',20) + '</div>'
+      + '<div><div class="plan-name">' + esc(k.t) + '</div><div class="plan-desc">' + esc(k.d) + ' · ' + k.type + '</div></div>'
+      + '<div class="plan-act"><button class="mini" data-action="speak" data-text="' + esc(k.t) + '。' + esc(k.d) + '">听</button></div>'
+      + '</div>'
+    ).join('')
+  + '</div>';
+}
+
+function dietResultHTML(big){
+  const d = DIET_SCAN;
+  return '<div class="result ' + (big?'big':'') + '">'
+    + '<div class="score"><div class="score-num">' + d.score + '</div><div class="score-txt">分</div></div>'
+    + '<div class="rt">识别到的菜品</div>'
+    + '<div class="tags">' + d.dishes.map(x => '<span class="tag">' + esc(x) + '</span>').join('') + '</div>'
+    + '<div class="rt">做得好的</div>'
+    + '<ul class="ul good">' + d.good.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'
+    + '<div class="rt">要调整的</div>'
+    + '<ul class="ul warn">' + d.warn.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>'
+    + '<button class="btn glass block" data-action="speak" data-text="' + esc(d.tips) + '">' + (big?'听一遍全部建议':'听建议') + '</button>'
+    + '</div>';
+}
+
+function stdSport(){
+  return '<div class="sec-title">居家运动</div>'
+  + '<div class="glass card">'
+  +   '<div class="row-between"><div class="card-title">今日运动计划</div><span class="pill">低强度 · 关节友好</span></div>'
+  +   SPORT_PLAN.map(p =>
+      '<div class="plan">'
+      + '<div class="plan-ico">' + icon(p.ic,20) + '</div>'
+      + '<div><div class="plan-name">' + esc(p.name) + '</div><div class="plan-desc">' + esc(p.desc) + '</div></div>'
+      + '<div class="plan-act"><button class="mini" data-action="check" data-key="sport">打卡</button></div>'
+      + '</div>'
+    ).join('')
+  +   '<button class="btn glass block" data-action="speak" data-text="今日运动计划：坐姿抬腿，每侧十二次两组；靠墙静蹲，三十秒三组；肩颈拉伸，每个方向二十秒；快走二十分钟。">听计划</button>'
+  +   '<button class="btn glass block" data-action="speak" data-text="风险提示：运动前先热身，感觉头晕、胸闷、关节疼痛请立即停止，必要时联系医生。">风险提示</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">运动教学库</div>'
+  +   '<div class="card-sub">每个动作都有分解教学与语音提示</div>'
+  +   SPORT_PLAN.map(p =>
+      '<div class="plan">'
+      + '<div class="plan-ico">' + icon('play',20) + '</div>'
+      + '<div><div class="plan-name">' + esc(p.name) + ' 教学</div><div class="plan-desc">' + esc(p.desc) + '</div></div>'
+      + '<div class="plan-act"><button class="mini" data-action="speak" data-text="' + esc(p.name) + '。' + esc(p.desc) + '。动作要慢，不要憋气。">听</button></div>'
+      + '</div>'
+    ).join('')
+  + '</div>';
+}
+
+function stdVideo(){
+  const slots = ['09:00','10:30','14:00','15:30','19:00'];
+  let html = '<div class="sec-title">预约视频</div>';
+
+  if(state.booked){
+    html += '<div class="glass card">'
+      + '<div class="row-between"><div class="card-title">预约成功</div><span class="pill ok">待开始</span></div>'
+      + '<div style="margin-top:10px;font-size:16px;font-weight:900">' + esc(state.booked.type) + '</div>'
+      + '<div class="card-sub">时间：今天 ' + esc(state.booked.slot) + ' · 康养师 李康养师</div>'
+      + '<button class="btn primary block" data-action="join-video">进入面对面视频</button>'
+      + '<button class="btn glass block" data-action="rebook">重新预约</button>'
+      + '</div>';
+  }else{
+    html += '<div class="glass card">'
+      + '<div class="card-title">选择咨询类型</div>'
+      + '<div class="chips">'
+      +   ['用药咨询','饮食运动康养咨询'].map(t =>
+            '<button class="chip ' + (state.consultType===t?'active':'') + '" data-action="consult-type" data-v="' + t + '">' + t + '</button>').join('')
+      + '</div>'
+      + '<div class="rt">选择时段</div>'
+      + '<div class="chips">'
+      +   slots.map(s =>
+            '<button class="chip ' + (state.slot===s?'active':'') + '" data-action="slot" data-v="' + s + '">' + s + '</button>').join('')
+      + '</div>'
+      + '<button class="btn primary block" data-action="confirm-book">确认预约</button>'
+      + '</div>';
+  }
+
+  html += '<div class="note">隐私说明：视频咨询默认不录制。如需录制，需经您本人明确授权，授权后可随时在「我的档案 - 隐私中心」关闭。未经授权，药师与康养师无法查看您的用药、打卡与咨询记录。</div>';
+  return html;
+}
+
+function stdProfile(){
+  const s = state.switches;
+  return '<div class="sec-title">我的档案</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">打卡项管理</div>'
+  +   setrow('吃药打卡','每天提醒并记录服药情况','med',s.med)
+  +   setrow('饮食打卡','拍照检查并记录三餐','diet',s.diet)
+  +   setrow('运动打卡','记录居家运动完成情况','sport',s.sport)
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">隐私中心</div>'
+  +   setrow('档案对外可见','允许药师查看基础档案','visible',s.visible)
+  +   setrow('允许家人查看','家人可查看打卡与提醒','family',s.family)
+  +   setrow('允许录制视频咨询','关闭后视频咨询不录制','record',s.record)
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">家人档案授权</div>'
+  +   '<div class="card-sub">已授权：女儿小美、儿子小刚</div>'
+  +   '<button class="btn glass block" data-action="toast" data-v="已发送授权邀请给家人">邀请家人</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">导出康养方案</div>'
+  +   '<div class="card-sub">可导出为图片或打印，方便贴在家中</div>'
+  +   '<button class="btn glass block" data-action="export-plan" data-v="普通版">导出普通版</button>'
+  +   '<button class="btn glass block" data-action="export-plan" data-v="老年大字版">导出老年大字版</button>'
+  + '</div>'
+
+  + '<button class="btn primary block" data-action="goto" data-v="elder">切换极简长辈模式</button>'
+  + '<button class="btn glass block" data-action="go-home">返回首页</button>'
+  + '<button class="btn glass block" data-action="logout">退出登录</button>';
+}
+
+function setrow(name, sub, key, on){
+  return '<div class="setrow">'
+    + '<div><div class="st-name">' + name + '</div><div class="st-sub">' + sub + '</div></div>'
+    + '<div class="switch ' + (on?'on':'') + '" data-action="toggle" data-key="' + key + '"></div>'
+    + '</div>';
+}
+
+/* ================= 极简长辈模式 ================= */
+function elderHTML(){
+  const tabs = [
+    ['med','吃药','pill'],
+    ['diet','饮食','bowl'],
+    ['sport','运动','run'],
+    ['link','连线','phone'],
+    ['info','资料','user']
+  ];
+  return '<div class="page elder">'
+    + '<div class="topbar">'
+    +   '<div class="tb-title" style="font-size:19px">长辈模式</div>'
+    +   '<div class="tb-acts">'
+    +     '<button class="chip" data-action="cycle-mode">切换模式</button>'
+    +     '<button class="chip" data-action="go-home">首页</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="scroll">' + elderContent() + '</div>'
+    + '<div class="tabbar">'
+    +   tabs.map(t => '<button class="tab ' + (state.elderTab===t[0]?'active':'') + '" data-action="elder-tab" data-v="' + t[0] + '">' + icon(t[2],22) + '<span>' + t[1] + '</span></button>').join('')
+    + '</div></div>';
+}
+function elderContent(){
+  switch(state.elderTab){
+    case 'med':   return elderMed();
+    case 'diet':  return elderDiet();
+    case 'sport': return elderSport();
+    case 'link':  return elderLink();
+    case 'info':  return elderInfo();
+  }
+}
+
+function elderMed(){
+  const c = state.check;
+  return '<div class="elder-head">该吃药啦，张奶奶</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="row-between"><div class="elder-time">早上 08:00</div><span class="pill ' + (c.med?'ok':'') + '" style="font-size:14px">' + (c.med?'已吃过':'还没吃') + '</span></div>'
+  +   '<div class="elder-dose">1 片</div>'
+  +   '<div class="elder-med">氨氯地平片</div>'
+  +   '<div class="elder-note">饭后服用 · 剩余 12 天</div>'
+  +   '<button class="btn primary block huge" data-action="check" data-key="med" style="margin-top:18px">' + (c.med?'已经吃过啦':'我吃过啦') + '</button>'
+  +   '<button class="btn glass block" data-action="speak" data-text="早上八点，吃氨氯地平片一片，饭后服用，还剩十二天。">听一遍</button>'
+  + '</div>'
+
+  + '<button class="btn glass block" data-action="open-add-med" style="font-size:19px;padding:17px">添加吃药提醒</button>'
+
+  + '<div class="glass card" style="margin-top:14px">'
+  +   '<div class="card-title">附近药房</div>'
+  +   pharmacyList()
+  + '</div>';
+}
+
+function elderDiet(){
+  const c = state.check;
+  return '<div class="elder-head">今天吃什么</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">拍照检查饮食</div>'
+  +   '<div class="card-sub">把这一餐拍下来，我帮您看看</div>'
+  +   '<button class="btn primary block huge" data-action="scan-diet-elder" style="margin-top:14px">拍照检查</button>'
+  +   (state.elderDietScan ? dietResultHTML(true) : '')
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">今天的三餐</div>'
+  +   '<div class="meal"><div class="meal-name">早饭</div><div class="meal-body">小米粥、鸡蛋、青菜包子</div></div>'
+  +   '<div class="meal"><div class="meal-name">午饭</div><div class="meal-body">米饭、豆腐、青菜</div></div>'
+  +   '<div class="meal"><div class="meal-name">晚饭</div><div class="meal-body">杂粮粥、蒸鱼、凉拌黄瓜</div></div>'
+  +   '<button class="btn glass block" data-action="speak" data-text="早饭，小米粥、鸡蛋、青菜包子。午饭，米饭、豆腐、青菜。晚饭，杂粮粥、蒸鱼、凉拌黄瓜。">听三餐安排</button>'
+  +   '<button class="btn ' + (c.diet?'glass':'primary') + ' block" data-action="check" data-key="diet">' + (c.diet?'已经打卡啦':'今天吃得不错') + '</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">要少吃的</div>'
+  +   '<div class="tags" style="margin-top:12px">'
+  +     ['浓汤','动物内脏','酒','咸菜','油炸','甜饮料'].map(x => '<span class="tag">' + x + '</span>').join('')
+  +   '</div>'
+  +   '<button class="btn glass block" data-action="speak" data-text="要少吃的东西：浓汤、动物内脏、酒、咸菜、油炸和甜饮料。">听一遍</button>'
+  + '</div>';
+}
+
+function elderSport(){
+  const v = state.video;
+  return '<div class="elder-head">一起动一动</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">坐姿抬腿 教学</div>'
+  +   '<div class="card-sub">跟着视频慢慢做，不着急</div>'
+  +   '<div class="progress" style="margin:16px 0;background:rgba(47,59,34,.12)"><i style="width:' + v.progress + '%"></i></div>'
+  +   '<button class="btn primary block" data-action="play-elder-video">' + (v.playing?'暂停播放':'播放视频') + '</button>'
+  +   '<div class="rt" style="margin-top:16px">步骤说明</div>'
+  +   '<ul class="ul" style="padding-left:20px">'
+  +     '<li>坐在椅子上，背靠椅背</li>'
+  +     '<li>慢慢抬起一条腿，伸直</li>'
+  +     '<li>停 2 秒，再慢慢放下</li>'
+  +     '<li>换另一条腿，每侧 12 次</li>'
+  +   '</ul>'
+  +   '<button class="btn glass block" data-action="speak" data-text="坐姿抬腿：坐在椅子上，背靠椅背。慢慢抬起一条腿，伸直，停两秒，再慢慢放下。换另一条腿，每侧十二次。">语音提示</button>'
+  +   '<div class="note">注意事项：动作要慢，不要憋气。感觉头晕、胸闷或关节疼痛，请马上停下来休息。</div>'
+  + '</div>'
+
+  + '<button class="btn primary block" data-action="goto-together" style="font-size:20px;padding:18px">一起锻炼 · 连线好友</button>';
+}
+
+function elderLink(){
+  return '<div class="elder-head">想找谁，说一声</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="mic-wrap">'
+  +     '<button class="mic" data-action="mic">' + icon('mic',54) + '</button>'
+  +     '<div class="mic-hint">按一下话筒，说「打给女儿」</div>'
+  +   '</div>'
+  +   '<div class="rt" style="text-align:center">可以这样说</div>'
+  +   '<div class="chips" style="justify-content:center">'
+  +     ['打给女儿','打给儿子','打给药师','打给康养师','打给社区'].map(x =>
+          '<button class="voice-chip" data-action="voice-call" data-who="' + x.replace('打给','') + '">' + x + '</button>').join('')
+  +   '</div>'
+  + '</div>'
+
+  + '<div class="quick" style="margin-bottom:14px">'
+  +   '<button class="btn primary" style="flex:1;font-size:19px;padding:17px" data-action="voice-call" data-who="药师">找药师</button>'
+  +   '<button class="btn primary" style="flex:1;font-size:19px;padding:17px" data-action="voice-call" data-who="康养师">找康养师</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">药伴服务点</div>'
+  +   SERVICES.map(s =>
+      '<div class="service">'
+      + '<div><div class="service-name">' + esc(s.name) + '</div><div class="service-meta">' + esc(s.type) + ' · ' + s.dist + '</div></div>'
+      + '<div class="pharm-acts"><button class="mini" data-action="nav" data-name="' + esc(s.name) + '">导航</button></div>'
+      + '</div>'
+    ).join('')
+  + '</div>';
+}
+
+function elderInfo(){
+  const m = state.member;
+  return '<div class="elder-head">我的资料</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="field"><div class="field-label">姓名</div><input class="einput" value="' + esc(m.name) + '" oninput="state.member.name=this.value"></div>'
+  +   '<div class="field"><div class="field-label">年龄</div><input class="einput" value="' + esc(m.age) + '" oninput="state.member.age=this.value"></div>'
+  +   '<div class="field"><div class="field-label">性别</div>'
+  +     '<div class="chips">'
+  +       ['男','女'].map(g => '<button class="chip ' + (m.gender===g?'active':'') + '" data-action="set-gender" data-v="' + g + '">' + g + '</button>').join('')
+  +     '</div>'
+  +   '</div>'
+  +   '<div class="field"><div class="field-label">主要慢病</div><input class="einput" value="' + esc(m.main) + '" oninput="state.member.main=this.value"></div>'
+  +   '<div class="field"><div class="field-label">其他慢病</div><input class="einput" value="' + esc(m.other) + '" oninput="state.member.other=this.value"></div>'
+  +   '<div class="field"><div class="field-label">正在吃的药</div><input class="einput" value="' + esc(m.meds) + '" oninput="state.member.meds=this.value"></div>'
+  +   '<button class="btn glass block" data-action="speak" data-text="姓名，' + esc(m.name) + '。年龄，' + esc(m.age) + '岁。性别，' + esc(m.gender) + '。主要慢病，' + esc(m.main) + '。其他慢病，' + esc(m.other) + '。正在吃的药，' + esc(m.meds) + '。">听一遍资料</button>'
+  + '</div>'
+
+  + '<div class="glass card">'
+  +   '<div class="card-title">常见慢病，点一下就填上</div>'
+  +   '<div class="chips" style="margin-top:12px">'
+  +     CHRONIC_TAGS.map(t => '<button class="chip" data-action="add-tag" data-v="' + t + '">' + t + '</button>').join('')
+  +   '</div>'
+  + '</div>'
+
+  + '<button class="btn glass block" data-action="go-home">返回首页</button>'
+  + '<button class="btn glass block" data-action="logout">退出登录</button>';
+}
+
+/* ================= 一起锻炼 ================= */
+function togetherHTML(){
+  const t = state.together;
+  let body = '';
+
+  if(t.stage === 'list'){
+    body = '<div class="glass card">'
+      + '<div class="card-title">好友列表</div>'
+      + '<div class="card-sub">在线的好友可以一起锻炼</div>'
+      + FRIENDS.map(f =>
+          '<div class="friend">'
+          + '<div class="dot ' + (f.online?'on':'') + '"></div>'
+          + '<div><div class="friend-name">' + esc(f.name) + '</div><div class="friend-meta">' + esc(f.doing) + '</div></div>'
+          + '<div class="plan-act"><button class="mini" data-action="call-friend" data-name="' + esc(f.name) + '" ' + (f.online?'':'disabled style="opacity:.45"') + '>呼叫</button></div>'
+          + '</div>'
+        ).join('')
+      + '</div>'
+      + '<div class="glass card">'
+      +   '<div class="card-title">药伴服务点导航</div>'
+      +   SERVICES.slice(0,3).map(s =>
+            '<div class="service">'
+            + '<div><div class="service-name">' + esc(s.name) + '</div><div class="service-meta">' + esc(s.type) + ' · ' + s.dist + '</div></div>'
+            + '<div class="pharm-acts"><button class="mini" data-action="nav" data-name="' + esc(s.name) + '">导航</button></div>'
+            + '</div>'
+          ).join('')
+      + '</div>';
+  }else if(t.stage === 'calling'){
+    body = '<div class="glass card" style="text-align:center;padding:40px 20px">'
+      + '<div class="mic" style="margin:0 auto 20px;width:110px;height:110px">' + icon('phone',44) + '</div>'
+      + '<div style="font-size:24px;font-weight:900">正在呼叫 ' + esc(t.friend) + '</div>'
+      + '<div class="card-sub" style="font-size:16px;margin-top:10px">请稍等…</div>'
+      + '<button class="btn glass block" data-action="end-together" style="margin-top:24px">取消</button>'
+      + '</div>';
+  }else{
+    body = '<div class="glass card" style="text-align:center;padding:28px 20px">'
+      + '<div style="font-size:24px;font-weight:900">和 ' + esc(t.friend) + ' 一起锻炼</div>'
+      + '<div class="card-sub" style="font-size:16px;margin-top:8px">坐姿抬腿 · 第 ' + (t.sec + 1) + ' 秒</div>'
+      + '<div class="progress" style="margin:22px 0;background:rgba(47,59,34,.12);width:100%"><i style="width:' + Math.min(100, t.sec * 2) + '%"></i></div>'
+      + '<div style="font-size:19px;font-weight:900;line-height:1.7">抬起一条腿，伸直<br>停 2 秒，再慢慢放下</div>'
+      + '<button class="btn primary block huge" data-action="end-together" style="margin-top:26px">结束锻炼</button>'
+      + '</div>';
+  }
+
+  return '<div class="page elder">'
+    + '<div class="topbar">'
+    +   '<button class="chip" data-action="back-elder">返回</button>'
+    +   '<div class="tb-title" style="font-size:19px">一起锻炼</div>'
+    +   '<button class="chip" data-action="go-home">首页</button>'
+    + '</div>'
+    + '<div class="scroll">' + body + '</div>'
+    + '</div>';
+}
+
+/* ================= 视频咨询 ================= */
+function videoHTML(){
+  return '<div class="page">'
+    + '<div class="topbar">'
+    +   '<button class="chip" data-action="end-video">结束</button>'
+    +   '<div class="tb-title">面对面视频</div>'
+    +   '<span class="pill">默认不录制</span>'
+    + '</div>'
+    + '<div class="video-stage">'
+    +   '<div class="vs-avatar">' + icon('user',52) + '</div>'
+    +   '<div class="vs-name">李康养师</div>'
+    +   '<div class="vs-tip">' + esc(state.booked ? state.booked.type : '用药咨询') + ' · 通话中</div>'
+    +   '<div class="progress"><i style="width:62%"></i></div>'
+    +   '<div class="vs-tip">本次咨询不会被录制</div>'
+    + '</div>'
+    + '<div style="padding:0 16px 16px">'
+    +   '<button class="btn glass block" data-action="speak" data-text="用药提醒：氨氯地平片，每天一次，每次一片，饭后服用。">听用药提醒</button>'
+    +   '<button class="btn primary block" data-action="end-video">结束视频</button>'
+    + '</div>'
+    + '</div>';
+}
+
+/* ================= 专业管理端 ================= */
+function proHTML(){
+  const tabs = [['users','用户档案'],['work','视频工作台'],['plan','方案配置']];
+  return '<div class="page">'
+    + '<div class="topbar">'
+    +   '<div class="tb-title">专业管理端</div>'
+    +   '<div class="tb-acts">'
+    +     '<button class="chip" data-action="cycle-mode">切换模式</button>'
+    +     '<button class="chip" data-action="go-home">首页</button>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="scroll">' + proContent() + '</div>'
+    + '<div class="tabbar">'
+    +   tabs.map(t => '<button class="tab ' + (state.proTab===t[0]?'active':'') + '" data-action="pro-tab" data-v="' + t[0] + '">' + icon(t[0]==='users'?'user':(t[0]==='work'?'video':'file'),20) + '<span>' + t[1] + '</span></button>').join('')
+    + '</div></div>';
+}
+function proContent(){
+  if(state.proTab === 'users'){
+    const users = [
+      {n:'小陈', a:26, d:'痛风', m:'标准模式'},
+      {n:'张奶奶', a:70, d:'2 型糖尿病 + 高血压', m:'极简长辈模式'},
+      {n:'王阿姨', a:58, d:'术后康复', m:'标准模式'}
+    ];
+    return '<div class="sec-title">用户档案</div>'
+      + users.map(u =>
+          '<div class="glass card">'
+          + '<div class="row-between"><div class="card-title">' + esc(u.n) + ' · ' + u.a + ' 岁</div><span class="pill">' + esc(u.m) + '</span></div>'
+          + '<div class="card-sub">疾病：' + esc(u.d) + '</div>'
+          + '<div class="note">用药、打卡、咨询记录需用户授权后方可查看。</div>'
+          + '</div>'
+        ).join('');
+  }
+  if(state.proTab === 'work'){
+    const list = [
+      {t:'09:00', n:'张奶奶', k:'用药咨询'},
+      {t:'10:30', n:'小陈',   k:'饮食运动康养咨询'},
+      {t:'14:00', n:'王阿姨', k:'术后康复随访'}
+    ];
+    return '<div class="sec-title">视频工作台</div>'
+      + '<div class="glass card">'
+      +   '<div class="card-title">今日视频咨询安排</div>'
+      +   list.map(x =>
+            '<div class="plan">'
+            + '<div class="plan-ico">' + icon('video',20) + '</div>'
+            + '<div><div class="plan-name">' + x.t + '　' + esc(x.n) + '</div><div class="plan-desc">' + esc(x.k) + '</div></div>'
+            + '</div>'
+          ).join('')
+      + '</div>'
+      + '<div class="glass card">'
+      +   '<div class="card-title">指导要点</div>'
+      +   '<div class="card-sub">记录本次咨询的要点，结束后同步给用户</div>'
+      +   '<textarea class="input" rows="4" style="margin-top:10px;resize:none" placeholder="例如：氨氯地平片继续每天一次，注意监测血压…"></textarea>'
+      +   '<button class="btn primary block" data-action="toast" data-v="指导要点已保存">保存要点</button>'
+      + '</div>';
+  }
+  return '<div class="sec-title">方案配置</div>'
+    + '<div class="glass card">'
+    +   '<div class="card-title">精简短视频版</div>'
+    +   '<div class="card-sub">适合手机端推送，1 分钟讲清一个要点</div>'
+    +   '<button class="btn glass block" data-action="toast" data-v="已生成精简短视频版方案">生成方案</button>'
+    + '</div>'
+    + '<div class="glass card">'
+    +   '<div class="card-title">标准图文版</div>'
+    +   '<div class="card-sub">适合标准模式用户，图文配合说明</div>'
+    +   '<button class="btn glass block" data-action="toast" data-v="已生成标准图文版方案">生成方案</button>'
+    + '</div>'
+    + '<div class="glass card">'
+    +   '<div class="card-title">大字插图纸质版</div>'
+    +   '<div class="card-sub">适合长辈打印张贴，字大、图多、话少</div>'
+    +   '<button class="btn glass block" data-action="toast" data-v="已生成大字插图纸质版方案">生成方案</button>'
+    + '</div>'
+    + '<div class="note">隐私合规：未获得用户授权，不得查看或导出其用药记录、打卡记录与视频咨询记录。所有查看行为均留痕。</div>';
+}
+
+/* ================= 交互 ================= */
+let codeTimer = null;
+
+function handle(action, el){
+  const v = el.dataset.v;
+  switch(action){
+
+    /* 登录 */
+    case 'send-code': {
+      if(codeTimer) return;
+      let n = 60;
+      el.textContent = n + 's 后重发';
+      el.disabled = true;
+      codeTimer = setInterval(() => {
+        n--;
+        if(n <= 0){
+          clearInterval(codeTimer); codeTimer = null;
+          el.textContent = '获取验证码'; el.disabled = false;
+        }else{
+          el.textContent = n + 's 后重发';
+        }
+      }, 1000);
+      toast('验证码已发送（演示：123456）');
+      break;
+    }
+    case 'login': {
+      const phone = document.getElementById('phoneInput');
+      if(phone && phone.value.trim().length < 6){ toast('请输入正确的手机号'); return; }
+      state.user.name = '小陈';
+      state.screen = 'home';
+      toast('登录成功');
+      render();
+      break;
+    }
+    case 'wechat-login':
+      state.screen = 'home';
+      toast('微信登录成功');
+      render();
+      break;
+    case 'guest':
+      state.screen = 'home';
+      toast('已进入游客模式');
+      render();
+      break;
+    case 'logout':
+      state.screen = 'login';
+      toast('已退出登录');
+      render();
+      break;
+
+    /* 导航 */
+    case 'go-home':
+      state.screen = 'home'; render(); break;
+    case 'goto':
+      state.screen = v;
+      if(v === 'standard') state.mode = 'standard';
+      if(v === 'elder') state.mode = 'elder';
+      if(v === 'pro') state.mode = 'pro';
+      render();
+      break;
+    case 'cycle-mode': {
+      const order = ['standard','elder','pro'];
+      const i = order.indexOf(state.mode);
+      state.mode = order[(i + 1) % order.length];
+      state.screen = state.mode;
+      toast(state.mode === 'standard' ? '已切换到标准模式' : state.mode === 'elder' ? '已切换到极简长辈模式' : '已切换到专业管理端');
+      render();
+      break;
+    }
+    case 'std-tab':
+      state.stdTab = v; render(); break;
+    case 'elder-tab':
+      state.elderTab = v; render(); break;
+    case 'pro-tab':
+      state.proTab = v; render(); break;
+    case 'back-elder':
+      state.screen = 'elder'; state.elderTab = 'sport'; render(); break;
+
+    /* 打卡 */
+    case 'check': {
+      const k = el.dataset.key;
+      state.check[k] = !state.check[k];
+      toast(state.check[k] ? '打卡成功' : '已取消打卡');
+      render();
+      break;
+    }
+    case 'check-all': {
+      state.check.med = true; state.check.diet = true; state.check.sport = true;
+      toast('已一键完成全部打卡');
+      render();
+      break;
+    }
+
+    /* 药房 */
+    case 'sort':
+      state.pharm.sort = v; render(); break;
+    case 'insure':
+      state.pharm.insureOnly = !state.pharm.insureOnly; render(); break;
+    case 'nav':
+      toast('正在为「' + el.dataset.name + '」打开地图导航');
+      break;
+    case 'call':
+      toast('正在拨打「' + el.dataset.name + '」');
+      break;
+
+    /* 语音 */
+    case 'speak':
+      speak(el.dataset.text || '');
+      break;
+    case 'quick':
+      if(v === '药师'){
+        toast('正在为你接通社区药师 王药师');
+        setTimeout(() => speak('你好，我是社区药师，有什么可以帮您？'), 700);
+      }else{
+        speak('今日提示：早上八点记得吃氨氯地平片一片，饭后服用。今天饮食清淡少油，饭后可以慢走二十分钟。');
+      }
+      break;
+    case 'toast':
+      toast(v); break;
+
+    /* 饮食 */
+    case 'scan-diet':
+    case 'scan-diet-elder': {
+      toast('正在识别菜品…');
+      setTimeout(() => {
+        if(action === 'scan-diet') state.dietScan = true;
+        else state.elderDietScan = true;
+        render();
+        toast('识别完成，评分 ' + DIET_SCAN.score + ' 分');
+      }, 900);
+      break;
+    }
+
+    /* 视频预约 */
+    case 'consult-type':
+      state.consultType = v; render(); break;
+    case 'slot':
+      state.slot = v; render(); break;
+    case 'confirm-book':
+      if(!state.slot){ toast('请先选择时段'); return; }
+      state.booked = {type: state.consultType, slot: state.slot};
+      toast('预约成功');
+      render();
+      break;
+    case 'rebook':
+      state.booked = null; state.slot = null; render(); break;
+    case 'join-video':
+      state.screen = 'video'; render(); break;
+    case 'end-video':
+      state.screen = 'standard'; state.stdTab = 'video';
+      toast('视频已结束，可重新预约');
+      render();
+      break;
+
+    /* 档案 / 隐私 */
+    case 'toggle':
+      state.switches[el.dataset.key] = !state.switches[el.dataset.key];
+      render();
+      break;
+    case 'export-plan':
+      toast('已导出「' + v + '」康养方案');
+      break;
+
+    /* 长辈模式 - 添加吃药提醒 */
+    case 'open-add-med':
+      openSheet(
+        '<div class="sheet-title">添加吃药提醒</div>'
+        + '<div class="sheet-sub">可以按住话筒说药名，也可以直接输入</div>'
+        + '<div class="field"><div class="field-label">药名</div>'
+        +   '<div class="input-row"><input class="input" id="medName" placeholder="例如：氨氯地平片" value="' + esc(state.addMed.name) + '">'
+        +   '<button class="btn small" data-action="add-med-voice" style="white-space:nowrap">' + '说药名' + '</button></div>'
+        + '</div>'
+        + '<div class="field"><div class="field-label">剂量</div>'
+        +   '<div class="chips">'
+        +     ['半片','1 片','2 片'].map(d => '<button class="chip ' + (state.addMed.dose===d?'active':'') + '" data-action="set-dose" data-v="' + d + '">' + d + '</button>').join('')
+        +   '</div>'
+        + '</div>'
+        + '<div class="field"><div class="field-label">吃药时间（可多选）</div>'
+        +   '<div class="chips">'
+        +     ['08:00','12:00','18:00','20:00'].map(t => '<button class="chip ' + (state.addMed.times.indexOf(t)>=0?'active':'') + '" data-action="set-time" data-v="' + t + '">' + t + '</button>').join('')
+        +   '</div>'
+        + '</div>'
+        + '<div class="field"><div class="field-label">备注</div><input class="input" id="medNote" placeholder="例如：饭后服用" value="' + esc(state.addMed.note) + '"></div>'
+        + '<button class="btn primary block" data-action="save-med">保存提醒</button>'
+        + '<button class="btn text block" data-action="close-sheet">取消</button>'
+      );
+      break;
+    case 'add-med-voice': {
+      toast('请说话…');
+      setTimeout(() => {
+        const inp = document.getElementById('medName');
+        if(inp) inp.value = '氨氯地平片';
+        state.addMed.name = '氨氯地平片';
+        toast('已识别：氨氯地平片');
+      }, 1100);
+      break;
+    }
+    case 'set-dose':
+      state.addMed.dose = v;
+      openMedSheetRefresh();
+      break;
+    case 'set-time': {
+      const i = state.addMed.times.indexOf(v);
+      if(i >= 0) state.addMed.times.splice(i,1); else state.addMed.times.push(v);
+      openMedSheetRefresh();
+      break;
+    }
+    case 'save-med': {
+      const n = document.getElementById('medName');
+      const note = document.getElementById('medNote');
+      if(n) state.addMed.name = n.value;
+      if(note) state.addMed.note = note.value;
+      if(!state.addMed.name){ toast('请先填写药名'); return; }
+      closeSheet();
+      toast('已添加提醒：' + state.addMed.name + '　' + state.addMed.times.join('、'));
+      speak('已为您添加吃药提醒，' + state.addMed.name + '，' + state.addMed.dose + '，时间' + state.addMed.times.join('、'));
+      break;
+    }
+    case 'close-sheet':
+      closeSheet(); break;
+
+    /* 长辈模式 - 饮食 */
+    case 'set-gender':
+      state.member.gender = v; render(); break;
+    case 'add-tag': {
+      const cur = state.member.other ? state.member.other.split('、') : [];
+      if(cur.indexOf(v) < 0) cur.push(v);
+      state.member.other = cur.join('、');
+      toast('已添加：' + v);
+      render();
+      break;
+    }
+
+    /* 长辈模式 - 视频 */
+    case 'play-elder-video': {
+      const vd = state.video;
+      vd.playing = !vd.playing;
+      if(vd.playing){
+        if(!vd.timer){
+          vd.timer = setInterval(() => {
+            vd.progress += 2;
+            if(vd.progress >= 100){ vd.progress = 100; vd.playing = false; clearInterval(vd.timer); vd.timer = null; }
+            const bar = app.querySelector('.progress i');
+            if(bar) bar.style.width = vd.progress + '%';
+            if(!vd.playing) render();
+          }, 120);
+        }
+        toast('开始播放教学视频');
+      }else{
+        if(vd.timer){ clearInterval(vd.timer); vd.timer = null; }
+        toast('已暂停');
+      }
+      render();
+      break;
+    }
+
+    /* 长辈模式 - 语音连线 */
+    case 'mic':
+      toast('请说话…');
+      setTimeout(() => {
+        const who = '女儿';
+        toast('已识别：打给' + who);
+        setTimeout(() => startCall(who), 500);
+      }, 1100);
+      break;
+    case 'voice-call':
+      startCall(el.dataset.who);
+      break;
+
+    /* 一起锻炼 */
+    case 'goto-together':
+      state.screen = 'together';
+      state.together = {stage:'list', friend:null, sec:0, timer:null};
+      render();
+      break;
+    case 'call-friend': {
+      const f = el.dataset.name;
+      state.together.friend = f;
+      state.together.stage = 'calling';
+      render();
+      setTimeout(() => {
+        if(state.screen !== 'together' || state.together.stage !== 'calling') return;
+        state.together.stage = 'active';
+        state.together.sec = 0;
+        render();
+        toast('已接通，一起做坐姿抬腿');
+        if(state.together.timer) clearInterval(state.together.timer);
+        state.together.timer = setInterval(() => {
+          if(state.screen !== 'together' || state.together.stage !== 'active') return;
+          state.together.sec++;
+          const p = app.querySelector('.progress i');
+          if(p) p.style.width = Math.min(100, state.together.sec * 2) + '%';
+          const t = app.querySelector('.card-sub');
+          if(t && t.textContent.indexOf('坐姿抬腿') >= 0) t.textContent = '坐姿抬腿 · 第 ' + (state.together.sec + 1) + ' 秒';
+        }, 1000);
+      }, 1600);
+      break;
+    }
+    case 'end-together':
+      if(state.together.timer){ clearInterval(state.together.timer); state.together.timer = null; }
+      state.together.stage = 'list';
+      state.together.friend = null;
+      toast('已结束一起锻炼');
+      render();
+      break;
+  }
+}
+
+function openMedSheetRefresh(){
+  const name = document.getElementById('medName');
+  const note = document.getElementById('medNote');
+  if(name) state.addMed.name = name.value;
+  if(note) state.addMed.note = note.value;
+  handle('open-add-med', document.createElement('div'));
+}
+
+function startCall(who){
+  openSheet(
+    '<div class="sheet-title">正在呼叫 ' + esc(who) + '</div>'
+    + '<div class="sheet-sub">长辈模式下可直接点大按钮拨号</div>'
+    + '<div class="mic" style="margin:8px auto 20px;width:110px;height:110px">' + icon('phone',44) + '</div>'
+    + '<button class="btn primary block" data-action="toast" data-v="通话中，请慢慢说">接通中…</button>'
+    + '<button class="btn text block" data-action="close-sheet">挂断</button>'
+  );
+  speak('正在呼叫' + who);
+}
+
+/* ================= 事件委托 ================= */
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  handle(el.dataset.action, el);
+});
+layer.addEventListener('click', e => {
+  if(e.target.dataset.close){
+    closeSheet();
+    return;
+  }
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  handle(el.dataset.action, el);
+});
+
+/* ==========================================================
+   长图导出（JPG）
+   ========================================================== */
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/* 所有需要导出的页面清单（顺序与文件名） */
+const EXPORT_PAGES = [
+  { name:'01_登录页',            setup:() => { state.screen='login'; } },
+  { name:'02_首页',              setup:() => { state.screen='home'; } },
+
+  { name:'03_标准模式_今日康养',  setup:() => { state.screen='standard'; state.stdTab='today'; } },
+  { name:'04_标准模式_饮食调整',  setup:() => { state.screen='standard'; state.stdTab='diet'; state.dietScan=true; } },
+  { name:'05_标准模式_居家运动',  setup:() => { state.screen='standard'; state.stdTab='sport'; } },
+  { name:'06_标准模式_预约视频',  setup:() => { state.screen='standard'; state.stdTab='video'; } },
+  { name:'07_标准模式_我的档案',  setup:() => { state.screen='standard'; state.stdTab='profile'; } },
+
+  { name:'08_长辈模式_吃药',      setup:() => { state.screen='elder'; state.elderTab='med'; } },
+  { name:'09_长辈模式_饮食',      setup:() => { state.screen='elder'; state.elderTab='diet'; state.elderDietScan=true; } },
+  { name:'10_长辈模式_运动',      setup:() => { state.screen='elder'; state.elderTab='sport'; } },
+  { name:'11_长辈模式_连线',      setup:() => { state.screen='elder'; state.elderTab='link'; } },
+  { name:'12_长辈模式_资料',      setup:() => { state.screen='elder'; state.elderTab='info'; } },
+
+  { name:'13_一起锻炼_好友列表',  setup:() => { state.screen='together'; state.together={stage:'list', friend:null, sec:0, timer:null}; } },
+  { name:'14_一起锻炼_进行中',    setup:() => { state.screen='together'; state.together={stage:'active', friend:'李奶奶', sec:12, timer:null}; } },
+
+  { name:'15_专业管理端_用户档案', setup:() => { state.screen='pro'; state.proTab='users'; } },
+  { name:'16_专业管理端_视频工作台', setup:() => { state.screen='pro'; state.proTab='work'; } },
+  { name:'17_专业管理端_方案配置', setup:() => { state.screen='pro'; state.proTab='plan'; } },
+
+  { name:'18_面对面视频',        setup:() => { state.screen='video'; state.booked={type:'用药咨询', slot:'10:30'}; } }
+];
+
+/* 把手机临时展开为"完整长图"模式 */
+function enterCaptureMode(){
+  document.querySelector('.phone').classList.add('capturing');
+}
+function exitCaptureMode(){
+  document.querySelector('.phone').classList.remove('capturing');
+}
+
+/* 核心：把 .screen 截成 JPG 并下载 */
+async function captureScreen(filename){
+  const screenEl = document.querySelector('.screen');
+  enterCaptureMode();
+  await sleep(120); // 等布局展开
+
+  const canvas = await html2canvas(screenEl, {
+    backgroundColor:'#F1F9DC',
+    scale:2,
+    useCORS:true,
+    logging:false,
+    scrollX:0,
+    scrollY:0,
+    width: screenEl.scrollWidth,
+    height: screenEl.scrollHeight,
+    windowWidth: screenEl.scrollWidth,
+    windowHeight: screenEl.scrollHeight
+  });
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const a = document.createElement('a');
+  a.download = filename + '.jpg';
+  a.href = dataUrl;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  exitCaptureMode();
+  await sleep(120);
+}
+
+/* 进度遮罩 */
+function showProgress(text, percent){
+  let mask = document.getElementById('exportMask');
+  if(!mask){
+    mask = document.createElement('div');
+    mask.id = 'exportMask';
+    mask.className = 'export-mask';
+    mask.innerHTML = '<div id="exportText">准备导出…</div><div class="bar"><i id="exportBar"></i></div>'
+      + '<div style="font-size:12px;font-weight:600;color:#6E7D5A">JPG 长图 · 保存在浏览器下载目录</div>';
+    document.body.appendChild(mask);
+  }
+  document.getElementById('exportText').textContent = text;
+  document.getElementById('exportBar').style.width = percent + '%';
+}
+function hideProgress(){
+  const mask = document.getElementById('exportMask');
+  if(mask) mask.remove();
+}
+
+/* 导出全部页面 */
+async function exportAllJPG(){
+  // 备份原始状态
+  const backup = JSON.parse(JSON.stringify({
+    screen: state.screen,
+    mode: state.mode,
+    stdTab: state.stdTab,
+    elderTab: state.elderTab,
+    proTab: state.proTab,
+    dietScan: state.dietScan,
+    elderDietScan: state.elderDietScan,
+    booked: state.booked,
+    check: state.check
+  }));
+
+  layer.innerHTML = '';
+  const total = EXPORT_PAGES.length;
+
+  for(let i = 0; i < total; i++){
+    const page = EXPORT_PAGES[i];
+    showProgress('正在导出：' + page.name + '（' + (i+1) + '/' + total + '）', Math.round(i / total * 100));
+
+    // 先还原基础状态，再套用当前页的设置
+    state.screen   = backup.screen;
+    state.mode     = backup.mode;
+    state.stdTab   = backup.stdTab;
+    state.elderTab = backup.elderTab;
+    state.proTab   = backup.proTab;
+    state.dietScan = backup.dietScan;
+    state.elderDietScan = backup.elderDietScan;
+    state.booked   = backup.booked;
+
+    page.setup();
+    render();
+    layer.innerHTML = '';
+    await sleep(220);
+
+    try{
+      await captureScreen(page.name);
+    }catch(err){
+      console.error('导出失败：' + page.name, err);
+    }
+    await sleep(260);
+  }
+
+  // 还原
+  state.screen   = backup.screen;
+  state.mode     = backup.mode;
+  state.stdTab   = backup.stdTab;
+  state.elderTab = backup.elderTab;
+  state.proTab   = backup.proTab;
+  state.dietScan = backup.dietScan;
+  state.elderDietScan = backup.elderDietScan;
+  state.booked   = backup.booked;
+  render();
+
+  showProgress('全部 ' + total + ' 张已导出完成', 100);
+  setTimeout(() => { hideProgress(); toast('全部页面长图已导出为 JPG'); }, 700);
+}
+
+/* 导出当前页面 */
+async function exportCurrentJPG(){
+  layer.innerHTML = '';
+  showProgress('正在导出当前页…', 40);
+  const map = {
+    login:'01_登录页',
+    home:'02_首页',
+    standard:'03_标准模式_' + ({today:'今日康养', diet:'饮食调整', sport:'居家运动', video:'预约视频', profile:'我的档案'}[state.stdTab] || '今日康养'),
+    elder:'08_长辈模式_' + ({med:'吃药', diet:'饮食', sport:'运动', link:'连线', info:'资料'}[state.elderTab] || '吃药'),
+    pro:'15_专业管理端_' + ({users:'用户档案', work:'视频工作台', plan:'方案配置'}[state.proTab] || '用户档案'),
+    together:'13_一起锻炼',
+    video:'18_面对面视频'
+  };
+  const name = map[state.screen] || '当前页';
+  await sleep(120);
+  try{
+    await captureScreen(name);
+    showProgress('导出完成', 100);
+  }catch(e){
+    console.error(e);
+  }
+  setTimeout(hideProgress, 600);
+}
+
+/* ================= 启动 ================= */
+render();
+</script>
+</body>
+</html>
